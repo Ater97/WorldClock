@@ -30,7 +30,7 @@ Op2Helpstr    db 13,10,'UTC$'
 Op2Error      db 13,10,':s Please enter a valid format$'
 ;------------------Option3-------------------------------- 
 India       DB 13,10, 'a. India: $'
-Alemania    DB 13,10, 'b. Alemania: $'
+alemania    DB 13,10, 'b. alemania: $'
 EEUU        DB 13,10, 'c. EEUU: $'
 Argentina   DB 13,10, 'd. Argentina: $'
 Japon       DB 13,10, 'e. Japon: $'
@@ -54,6 +54,9 @@ PRUEBA1    DB 13,10, 'PRUEBA1: $'
 PRUEBA2    DB 13,10, 'PRUEBA2: $'
 num1        db ?
 num2        db ?
+rst         db ?
+rst2        db ?
+module      db ?
 .code
 programa:
     mov AX,@DATA
@@ -78,7 +81,7 @@ Menu:
     lea     DX,AskOption
     call    PrintStr
     call    Readint
-    mov     num1, AL
+    mov     num1, al
     cmp     num1,1
     je      Option1
     cmp     num1,2
@@ -102,7 +105,7 @@ Finish:
 Option1:
     call    CleanScreen
     lea BX, date
-    call get_date
+    call get__date
     
     lea dx,Op1DateStr
     call PrintStr       ;System date:
@@ -185,10 +188,11 @@ utcProcedure proc
 ;Hour Part
     mov AH,2CH    ; To get System Time
     int 21H
-    mov AL,CH     ; Hour is in CH
+    mov al,CH     ; Hour is in CH
     add al,num1   ;
-    mov num2, al  ;new hour in num2
-    
+    mov num2,al
+    cmp num2,24
+    jg  AdjustmentUTC ;if is necesary to change date
     AAM
     mov BX,AX
     call DISP
@@ -196,68 +200,114 @@ utcProcedure proc
     call    get_minutes
     lea     dx,Salto
     call    PrintStr
+    call    get_date
+    ret
+AdjustmentUTC:
+    lea DX,PRUEBA1
+    call PrintStr
 
-    ;Day Part
-    MOV AH,2AH    ; To get System Date
-    INT 21H
-    MOV AL,DL     ; Day is in DL
+    call    CleanV ;clean dx and ax
+    mov     al,num2
+    mov     bl,25
+    div     bl
+    mov     rst,al      ; add rst to day
+    mov     module,ah   ;new hour
+    mov     al,module     ; Hour is in module
     AAM
-    MOV BX,AX
-    CALL DISP
+    mov     BX,AX
+    call    DISP
+    call    get_minutes
 
-    MOV DL,'/'
-    MOV AH,02H    ; To Print / in DOS
-    INT 21H
+    lea     dx,Salto
+    call    PrintStr
+    ;Day Part
+    mov AH,2AH    ; To get System Date
+    int 21H
+    mov al,dl     ; Day is in dl
+    add al,rst
+    AAM
+    mov BX,AX
+    call DISP
+
+    mov dl,'/'
+    mov AH,02H    ; To Print / in DOS
+    int 21H
 
     ;Month Part
-    MOV AH,2AH    ; To get System Date
-    INT 21H
-    MOV AL,DH     ; Month is in DH
+    mov AH,2AH    ; To get System Date
+    int 21H
+    mov al,DH     ; Month is in DH
     AAM
-    MOV BX,AX
-    CALL DISP
+    mov BX,AX
+    call DISP
 
-    MOV DL,'/'    ; To Print / in DOS
-    MOV AH,02H
-    INT 21H
+    mov dl,'/'    ; To Print / in DOS
+    mov AH,02H
+    int 21H
 
     ;Year Part
-    MOV AH,2AH    ; To get System Date
-    INT 21H
+    mov AH,2AH    ; To get System Date
+    int 21H
     ADD CX,0F830H ; To negate the effects of 16bit value,
-    MOV AX,CX     ; since AAM is applicable only for AL (YYYY -> YY)
+    mov AX,CX     ; since AAM is applicable only for al (YYYY -> YY)
     AAM
-    MOV BX,AX
-    CALL DISP
+    mov BX,AX
+    call DISP
+
+
 ret
 endp
 
-set_time proc ;Regresa CH = hora, CL = minutos, DH = segundos y DL = centésimos de segundo.
+printNum1 proc
+    mov al, num1
+    mov BL, 10 
+    DIV BL  
+    
+    mov rst,al
+    mov rst2,AH
+    XOR DX,DX;clean
+
+    ;print result
+    mov AH,02h
+    mov dl,rst
+    ADD dl,30h
+    int 21h
+    
+    XOR DX,DX ;clean
+    mov AH,02h
+    mov dl,rst2
+    ADD dl,30h
+    int 21h
+ret
+endp
+
+
+set_time proc ;Regresa CH = hora, CL = minutos, DH = segundos y dl = centésimos de segundo.
     mov ah,2d
     int 21h
     ret
     endp
 get_minutes proc
-    mov DL,':'
+    mov dl,':'
     mov AH,02H    ; To Print : in DOS
     int 21H
 
     ;Minutes Part
     mov AH,2CH    ; To get System Time
     int 21H
-    mov AL,CL     ; Minutes is in CL
+    mov al,CL     ; Minutes is in CL
     AAM
     mov BX,AX
     call DISP
 
-    mov DL,':'    ; To Print : in DOS
+    mov dl,':'    ; To Print : in DOS
     mov AH,02H
     int 21H
 
     ;Seconds Part
     mov AH,2CH    ; To get System Time
     int 21H
-    mov AL,DH     ; Seconds is in DH
+    mov al,DH     ; Seconds is in DH
     AAM
     mov BX,AX
     call DISP
@@ -267,36 +317,72 @@ get_time proc
     ;Hour Part
     mov AH,2CH    ; To get System Time
     int 21H
-    mov AL,CH     ; Hour is in CH
+    mov al,CH     ; Hour is in CH
     AAM
     mov BX,AX
     call DISP
 
-    mov DL,':'
+    mov dl,':'
     mov AH,02H    ; To Print : in DOS
     int 21H
 
     ;Minutes Part
     mov AH,2CH    ; To get System Time
     int 21H
-    mov AL,CL     ; Minutes is in CL
+    mov al,CL     ; Minutes is in CL
     AAM
     mov BX,AX
     call DISP
 
-    mov DL,':'    ; To Print : in DOS
+    mov dl,':'    ; To Print : in DOS
     mov AH,02H
     int 21H
 
     ;Seconds Part
     mov AH,2CH    ; To get System Time
     int 21H
-    mov AL,DH     ; Seconds is in DH
+    mov al,DH     ; Seconds is in DH
     AAM
     mov BX,AX
     call DISP
     ret
     endp
+get_date proc
+    ;Day Part
+    mov AH,2AH    ; To get System Date
+    int 21H
+    mov al,dl     ; Day is in dl
+    AAM
+    mov BX,AX
+    call DISP
+
+    mov dl,'/'
+    mov AH,02H    ; To Print / in DOS
+    int 21H
+
+    ;Month Part
+    mov AH,2AH    ; To get System Date
+    int 21H
+    mov al,DH     ; Month is in DH
+    AAM
+    mov BX,AX
+    call DISP
+
+    mov dl,'/'    ; To Print / in DOS
+    mov AH,02H
+    int 21H
+
+    ;Year Part
+    mov AH,2AH    ; To get System Date
+    int 21H
+    ADD CX,0F830H ; To negate the effects of 16bit value,
+    mov AX,CX     ; since AAM is applicable only for al (YYYY -> YY)
+    AAM
+    mov BX,AX
+    call DISP
+    ret
+endp
+
 DISP proc
     mov dl,BH      ; Since the values are in BX, BH Part
     ADD dl,30H     ; ASCII Adjustment
@@ -309,7 +395,7 @@ DISP proc
     ret
      endp
 
-get_date proc
+get__date proc
     mov ah,2ah
     int 21h
     mov WEEKDAY,al
@@ -433,18 +519,18 @@ PrintStr proc
     ret
     endp
 ReadChar proc
-    MOV AH , 01h
-    INT 21h
+    mov AH , 01h
+    int 21h
     ret
     endp
 Readint proc
-    XOR AL,AL
+    XOR al,al
     mov AH, 01h  
     int 21h 
-    SUB AL,30h 
+    SUB al,30h 
     ret
     endp
-Clean proc
+CleanV proc
     xor dx,dx
     xor ax,ax
     ret
