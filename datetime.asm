@@ -15,14 +15,15 @@ num1 db ?
 ;------------------Option1--------------------------------  
 date    db  'dd:mm:rrrr$'
 nl      db 10,13,'$' 
-Op1str  DB 13,10, 'System datetime: $'
-Monday db 13,10,'Monday$'
-Tuesday db 13,10,'Tuesday$'
-Wednesday db 13,10,'Wednesday$'
-Thusday db 13,10,'Thusday$'
-Friday db 13,10,'Friday$'
-Saturday db 13,10,'Saturday$'
-Sunday db 13,10,'Sunday$'
+Op1DateStr  DB 13,10, 'System date: $'
+Op1TimeStr  DB 13,10, 'System time: $'
+Monday db 'Monday $'
+Tuesday db 'Tuesday $'
+Wednesday db 'Wednesday $'
+Thusday db 'Thusday $'
+Friday db 'Friday $'
+Saturday db 'Saturday $'
+Sunday db 'Sunday $'
 ;------------------Option2-------------------------------- 
 ;------------------Option3-------------------------------- 
 India       DB 13,10, 'a. India: $'
@@ -91,22 +92,14 @@ Option1:
     lea BX, date
     call get_date
     
-    lea dx,Op1str
-    call PrintStr
+    lea dx,Op1DateStr
+    call PrintStr       ;System date:
+    call PrintWeekDay   ;display week day
     lea dx,date
+    call PrintStr       ;display date
+    lea dx, Op1TimeStr  ;System time:    
     call PrintStr
-    xor dx,dx
-    call PrintWeekDay
-    ;mov dl,WEEKDAY
-    ;call    Printint
-
-DAY:
-    MOV AH,2AH    ; To get System Date
-    INT 21H
-    MOV AL,DL     ; Day is in DL
-    AAM
-    MOV BX,AX
-    CALL DISP
+    call get__time
     call Continue
 ;------------------Option2--------------------------------   
 Option2:
@@ -131,8 +124,37 @@ Finish:
     int 21h
 ;---------------------UTILITIES--------------------------
 get__time proc
-    mov ah,2ch
-    int 21h
+    ;Hour Part
+    MOV AH,2CH    ; To get System Time
+    INT 21H
+    MOV AL,CH     ; Hour is in CH
+    AAM
+    MOV BX,AX
+    CALL DISP
+
+    MOV DL,':'
+    MOV AH,02H    ; To Print : in DOS
+    INT 21H
+
+    ;Minutes Part
+    MOV AH,2CH    ; To get System Time
+    INT 21H
+    MOV AL,CL     ; Minutes is in CL
+    AAM
+    MOV BX,AX
+    CALL DISP
+
+    MOV DL,':'    ; To Print : in DOS
+    MOV AH,02H
+    INT 21H
+
+    ;Seconds Part
+    MOV AH,2CH    ; To get System Time
+    INT 21H
+    MOV AL,DH     ; Seconds is in DH
+    AAM
+    MOV BX,AX
+    CALL DISP
     ret
     endp
 DISP proc
@@ -144,7 +166,7 @@ DISP proc
     ADD dl,30H     ; ASCII Adjustment
     mov AH,02H     ; To Print in DOS
     int 21H
-    RET
+    ret
      endp
 
 get_date proc
