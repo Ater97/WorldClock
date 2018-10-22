@@ -25,8 +25,6 @@ Saturday db 13,10,'Saturday$'
 Sunday db 13,10,'Sunday$'
 ;------------------Option2-------------------------------- 
 ;------------------Option3-------------------------------- 
-
-Salto       DB 13,10, ' $'
 India       DB 13,10, 'a. India: $'
 Alemania    DB 13,10, 'b. Alemania: $'
 EEUU        DB 13,10, 'c. EEUU: $'
@@ -37,6 +35,7 @@ Japon       DB 13,10, 'e. Japon: $'
 ;------------------Option5------------------------------- 
 
 ;---------------------UTILITIES--------------------------
+Salto       DB 13,10, ' $'
 YEAR        DW ?
 MONTH       DB ?
 DAY         DB ?
@@ -47,8 +46,8 @@ MINUTE      DB ?
 Cadena2     DB 13,10, 'PRUEBA: $'
 .code
 programa:
-    MOV AX,@DATA
-    MOV DS,AX
+    mov AX,@DATA
+    mov DS,AX
 ;---------------------------------------------------------------    
 start:
 Menu:
@@ -68,7 +67,7 @@ Menu:
     call    PrintStr
     lea     DX,AskOption
     call    PrintStr
-    call    ReadInt
+    call    Readint
     cmp     num1,1
     je      Option1
     cmp     num1,2
@@ -99,8 +98,15 @@ Option1:
     xor dx,dx
     call PrintWeekDay
     ;mov dl,WEEKDAY
-    ;call    PrintInt
+    ;call    Printint
 
+DAY:
+    MOV AH,2AH    ; To get System Date
+    INT 21H
+    MOV AL,DL     ; Day is in DL
+    AAM
+    MOV BX,AX
+    CALL DISP
     call Continue
 ;------------------Option2--------------------------------   
 Option2:
@@ -124,6 +130,58 @@ Finish:
     mov ah, 4ch
     int 21h
 ;---------------------UTILITIES--------------------------
+get__time proc
+    mov ah,2ch
+    int 21h
+    ret
+    endp
+DISP proc
+    mov dl,BH      ; Since the values are in BX, BH Part
+    ADD dl,30H     ; ASCII Adjustment
+    mov AH,02H     ; To Print in DOS
+    int 21H
+    mov dl,BL      ; BL Part 
+    ADD dl,30H     ; ASCII Adjustment
+    mov AH,02H     ; To Print in DOS
+    int 21H
+    RET
+     endp
+
+get_date proc
+    mov ah,2ah
+    int 21h
+    mov WEEKDAY,al
+    mov al,dl
+    mov DAY,dl
+    call convert
+    mov [bx],ax
+    mov al,dh
+    mov MONTH,dh
+    call convert
+    mov [bx+3],ax
+    mov al,100
+    xchg ax,cx
+    div cl
+    mov ch,ah
+    call convert
+    mov [bx+6],ax
+    mov al,ch
+    mov YEAR,cx
+    call convert
+    mov [bx+8],ax    
+    ret
+    endp          
+
+convert proc
+    push dx
+    mov ah,0
+    mov dl,10
+    div dl
+    or ax, 3030h
+    pop dx
+    ret 
+    endp
+
 PrintWeekDay proc
     cmp WEEKDAY,1
     je  mon
@@ -168,38 +226,7 @@ sun:
     call PrintStr
     ret
     endp
-
-get_date proc
-        mov ah,2ah
-        int 21h
-        mov WEEKDAY,al
-        mov al,dl
-        call convert
-        mov [bx],ax
-        mov al,dh
-        call convert
-        mov [bx+3],ax
-        mov al,100
-        xchg ax,cx
-        div cl
-        mov ch,ah
-        call convert
-        mov [bx+6],ax
-        mov al,ch
-        call convert
-        mov [bx+8],ax    
-        ret
-        endp          
-
-convert proc
-        push dx
-        mov ah,0
-        mov dl,10
-        div dl
-        or ax, 3030h
-        pop dx
-        ret 
-        endp
+;------------------------------
 Continue proc
     lea     DX,AskContinue
     call    PrintStr
@@ -220,23 +247,23 @@ CleanScreen proc
     int 10h
     ret
     endp
-PrintInt proc
-    MOV AH,02h ;print dl
-    ADD Dl,30h
+Printint proc
+    mov AH,02h ;print dl
+    ADD dl,30h
     int 21h
     ret
     endp
 PrintStr proc 
-    MOV AH, 09h ;PrintStr DX
-    INT 21h
+    mov AH, 09h ;PrintStr DX
+    int 21h
     ret
     endp
-ReadInt proc
+Readint proc
     XOR AL,AL
     mov AH, 01h  
     int 21h 
     SUB AL,30h 
-    MOV num1, AL
+    mov num1, AL
     ret
     endp
 Clean proc
