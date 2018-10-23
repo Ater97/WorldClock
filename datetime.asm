@@ -5,7 +5,7 @@ MENUstr DB 10,13,'MENU$'
 Option1str DB 10,13,'1. Show system date-time$'
 Option2str  DB 10,13,'2. Enter UTC format$'
 Option3str  DB 10,13,'3. Show example countries$'
-Option4str  DB 10,13,'4. Update date$'
+Option4str  DB 10,13,'4. Update time$'
 Option5str  DB 10,13,'5. Analog display$'
 AskExit DB 10,13,'6. Exit$'
 AskOption DB 10,13, 'Enter the number of your choice: $'
@@ -30,8 +30,8 @@ Op2Helpstr    db 13,10,'UTC$'
 Op2Error      db 13,10,':s Please enter a valid format$'
 ;------------------Option3-------------------------------- 
 Indiastr      DB 13,10, 'a. India: $'
-Alemaniastr   DB 13,10, 'b. alemania: $'
-EEUUstr       DB 13,10, 'c. EEUU: $'
+Alemaniastr   DB 13,10, 'b. Alemania: $'
+EEUUstr       DB 13,10, 'c. East Coast USA: $'
 Argentinastr  DB 13,10, 'd. Argentina: $'
 Japonstr      DB 13,10, 'e. Japon: $'
 Op3Datestr    DB 13,10, 'Date: $'
@@ -271,14 +271,60 @@ utcProcedure proc
     ;Hour Part
     lea     dx,Op3Timestr
     call    PrintStr
-    mov AH,2CH    ; To get System Time
-    int 21H
-    mov al,CH     ; Hour is in CH
-    add al,num1   ; add extra hours 
-    add al,6    ;add 6hours to UTC 00
-    mov num2,al
-    cmp num2,24
-    jg  AdjustmentUTC ;if is necesary to change date
+    mov     AH,2CH    ; To get System Time
+    int     21H
+    mov     al,CH     ; Hour is in CH
+    add     al,num1   ; add extra hours 
+    add     al,6    ;add 6hours to UTC 00
+    mov     num2,al
+    cmp     num2,23
+    jg      AdjustmentUTC ;if is necesary to change date (positive)
+
+    cmp     num2,0  
+    jg      TinyAdjustment  
+    ;if is necesary to change date (negative)
+    call    CleanV ;clean dx and ax
+    mov     al,num2 ; system hour + num1 (extra hours) + 6 hours
+    mov     bl,-1
+    mul     bl      ;convert hour to positive
+    add     al,6    ;add 6hours to UTC 00
+    ;---debug----
+    mov tmp,al
+    call debug
+    call CleanV
+    mov al,tmp
+    ;-----------
+
+    mov     bl,24
+    div     bl
+    mov     rst,al      ; add rst to day
+    mov     hour,ah   ;new hour
+
+    ;---debug----
+    mov tmp,ah
+    call debug
+    call CleanV
+    mov ah,tmp
+    ;-----------
+
+    ;---debug----
+    mov tmp,al
+    call debug
+    call CleanV
+    mov al,tmp
+    ;-----------
+    mov al,HOUR
+    AAM
+    mov     BX,AX
+    call    DISP
+    call    get_minutes
+    lea     dx,Op3Datestr
+    call    PrintStr
+    ;Day Part
+
+
+    ret
+TinyAdjustment:
     AAM
     mov BX,AX
     call DISP
@@ -291,7 +337,7 @@ utcProcedure proc
 AdjustmentUTC:
     call    CleanV ;clean dx and ax
     mov     al,num2 ; system hour + num1 (extra hours) + 6 hours
-    mov     bl,25
+    mov     bl,24
     div     bl
     mov     rst,al      ; add rst to day
     mov     hour,ah   ;new hour
@@ -360,7 +406,7 @@ utcProcedureIndia proc
     mov     al,cl       ;minutes
     add     al,num3     ;add extra minutes
 
-    mov     bl,61d
+    mov     bl,60d
     div     bl
     mov rst,al ; add rst to hour
     mov MINUTE,ah ; new minute module
