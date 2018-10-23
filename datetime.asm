@@ -36,6 +36,7 @@ Argentinastr  DB 13,10, 'd. Argentina: $'
 Japonstr      DB 13,10, 'e. Japon: $'
 Op3Datestr    DB 13,10, 'Date: $'
 Op3Timestr    DB 13,10, 'Time: $'
+Op3str        DB 13,10,'Coordinated Universal Time$'
 ;------------------Option4-------------------------------- 
 Op4Timestr  DB 13,10,'Enter new time in this format hh:mm:ss : $'
 Op4Datestr  DB 13,10,'Enter new date in this format dd/mm/yy: $'
@@ -178,16 +179,24 @@ jmp Option5beta2
 ;------------------Option3--------------------------------   
 Option3:
     call    CleanScreen
-    lea dx, Op1TimeStr  ;System time:    
-    call PrintStr
-    call get_time       ;display time
+    lea     dx, Op1TimeStr  ;System time:    
+    call    PrintStr
+    call    get_time       ;display time
 
-    lea BX, date
-    call get__date
-    lea dx,Op1DateStr
-    call PrintStr       ;System date:
-    lea dx,date
-    call PrintStr       ;display date
+    lea     BX, date
+    call    get__date
+    lea     dx,Op1DateStr
+    call    PrintStr       ;System date:
+    lea     dx,date
+    call    PrintStr       ;display date
+
+    lea     dx, Salto
+    call    PrintStr
+    lea     dx,Op3str       ;Coordinated Universal Time
+    call    PrintStr
+    mov     num1,0
+    call    utcProcedure
+
 India: ;UTC+5:30
     lea     dx,Salto
     call    PrintStr
@@ -252,22 +261,6 @@ Option4:
     mov bl,num1
     mov SECOND,bl
     call set_time
-
-    lea     dx,Op4Datestr
-    call    PrintStr
-    call ReadTwoint ;save on num1
-    mov bl,num1
-    mov DAY,bl
-    call CleanV
-    call ReadChar ;should be / but doesnt matter
-    call ReadTwoint ;save on num1
-    mov bl,num1
-    mov MONTH,bl
-    call CleanV
-    call ReadChar ;should be / but doesnt matter
-    call ReadTwoint ;save on num1
-    mov bl,num1
-    mov YEARb,bl
     call    Continue
 ;------------------Option5--------------------------------   
 Option5:
@@ -281,7 +274,8 @@ utcProcedure proc
     mov AH,2CH    ; To get System Time
     int 21H
     mov al,CH     ; Hour is in CH
-    add al,num1   ;
+    add al,num1   ; add extra hours 
+    add al,6    ;add 6hours to UTC 00
     mov num2,al
     cmp num2,24
     jg  AdjustmentUTC ;if is necesary to change date
@@ -296,7 +290,7 @@ utcProcedure proc
     ret
 AdjustmentUTC:
     call    CleanV ;clean dx and ax
-    mov     al,num2 ; system hour + num1 (extra hours)
+    mov     al,num2 ; system hour + num1 (extra hours) + 6 hours
     mov     bl,25
     div     bl
     mov     rst,al      ; add rst to day
@@ -378,7 +372,8 @@ utcProcedureIndia proc
     mov al,CH     ; Hour is in CH
     add al,rst    ; extra from minute
     add al,num1   ; extra from utc
-    mov num2,al   ; system hour + num1 (extra hours)
+    add al,6      ; for UTC00
+    mov num2,al   ; system hour + num1 (extra hours) + 6 hours
     div     bl
     mov     rst,al      ; add rst to day
     mov     hour,ah     ;new hour
@@ -466,17 +461,6 @@ debug proc
     lea dx,Salto
     call PrintStr
     ret 
-    endp
-set_date proc ;Regresa AL = día de la semana (Dom=0, Lun=1,….Sab=6) CX = año, DH = mes DL = día del mes
-    call CleanV
-    ;sub CX,0F830H ; To negate the effects of 16bit value,
-    mov al,1
-    mov cx,YEAR
-    mov dh,MONTH
-    mov dl,DAY
-    mov ah,2bh
-    int 21h
-    ret
     endp
 
 set_time proc ;Regresa CH = hora, CL = minutos, DH = segundos y dl = centésimos de segundo.
