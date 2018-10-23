@@ -38,18 +38,20 @@ Op3Datestr    DB 13,10, 'Date: $'
 Op3Timestr    DB 13,10, 'Time: $'
 ;------------------Option4-------------------------------- 
 Op4Timestr  DB 13,10,'Enter new time in this format hh:mm:ss : $'
-Op4Datestr  DB 13,10,'Enter new date in this format dd/mm/yyyy: $'
+Op4Datestr  DB 13,10,'Enter new date in this format dd/mm/yy: $'
 
 ;------------------Option5------------------------------- 
 
 ;---------------------UTILITIES--------------------------
 Salto       DB 13,10, ' $'
 YEAR        DW ?
+YEARb       db ?
 MONTH       DB ?
 DAY         DB ?
 WEEKDAY     DB ?
 HOUR        DB ?
 MINUTE      DB ?
+SECOND      DB ?
 Entrada     db ?
 num1        db ?
 num2        db ?
@@ -236,10 +238,36 @@ Option4:
     call    CleanScreen
     lea     dx,Op4Timestr
     call    PrintStr
-
+    call ReadTwoint ;save on num1
+    mov bl,num1
+    mov HOUR,bl
+    call CleanV
+    call ReadChar ;should be : but doesnt matter
+    call ReadTwoint ;save on num1
+    mov bl,num1
+    mov MINUTE,bl
+    call CleanV
+    call ReadChar ;should be : but doesnt matter
+    call ReadTwoint ;save on num1
+    mov bl,num1
+    mov SECOND,bl
+    call set_time
 
     lea     dx,Op4Datestr
     call    PrintStr
+    call ReadTwoint ;save on num1
+    mov bl,num1
+    mov DAY,bl
+    call CleanV
+    call ReadChar ;should be / but doesnt matter
+    call ReadTwoint ;save on num1
+    mov bl,num1
+    mov MONTH,bl
+    call CleanV
+    call ReadChar ;should be / but doesnt matter
+    call ReadTwoint ;save on num1
+    mov bl,num1
+    mov YEARb,bl
     call    Continue
 ;------------------Option5--------------------------------   
 Option5:
@@ -439,8 +467,24 @@ debug proc
     call PrintStr
     ret 
     endp
+set_date proc ;Regresa AL = día de la semana (Dom=0, Lun=1,….Sab=6) CX = año, DH = mes DL = día del mes
+    call CleanV
+    ;sub CX,0F830H ; To negate the effects of 16bit value,
+    mov al,1
+    mov cx,YEAR
+    mov dh,MONTH
+    mov dl,DAY
+    mov ah,2bh
+    int 21h
+    ret
+    endp
+
 set_time proc ;Regresa CH = hora, CL = minutos, DH = segundos y dl = centésimos de segundo.
-    mov ah,2d
+    call CleanV
+    mov ch,HOUR
+    mov cl,MINUTE
+    mov dh,SECOND
+    mov ah,2Dh
     int 21h
     ret
     endp
@@ -776,6 +820,7 @@ printtmp proc
     CleanV proc
         xor dx,dx
         xor ax,ax
+        xor cx,cx
         ret
         endp
 
