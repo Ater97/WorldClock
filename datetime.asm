@@ -48,7 +48,6 @@ DAY         DB ?
 WEEKDAY     DB ?
 HOUR        DB ?
 MINUTE      DB ?
-Seconds     DB ?
 Entrada     db ?
 PRUEBA1    DB 13,10, 'PRUEBA1: $'
 PRUEBA2    DB 13,10, 'PRUEBA2: $'
@@ -150,6 +149,12 @@ minus:
     call    ReadTwoint ; number is in num1 & al
     lea     dx,Salto
     call    PrintStr
+    call    CleanV
+    mov     al,num1
+    mov     bl,-1
+    mul     bl
+    mov     num1, al
+    call    utcProcedure
     ;convert num1 to negative, then do the same with plus case
     call    Continue  
 Error:
@@ -211,32 +216,42 @@ AdjustmentUTC:
     mov     bl,25
     div     bl
     mov     rst,al      ; add rst to day
-    mov     module,ah   ;new hour
-    mov     al,module     ; Hour is in module
+    mov     hour,ah   ;new hour
+    mov     al,hour     ; Hour is in module
     AAM
     mov     BX,AX
     call    DISP
     call    get_minutes
-
     lea     dx,Salto
     call    PrintStr
     ;Day Part
-    mov AH,2AH    ; To get System Date
-    int 21H
-    mov al,dl     ; Day is in dl
-    add al,rst
+    mov     AH,2AH    ; To get System Date
+    int     21H
+    mov     al,dl     ; Day is in dl
+    add     al,rst
+    mov num2,al     ;days 
+    mov MONTH,dh  ; Month is in DH
+    mov YEAR,cx     ;   (1980 through 2099)
+    call getMonthDays ; DAY have the amount of days of the actual month
+    call CleanV
+
+    mov al,num2
+    mov bl,Day
+    div bl
+    mov rst,al  ;add rsr to month
+    mov module,ah; new day
+    mov al,module   ;day is in module
     AAM
     mov BX,AX
     call DISP
-
     mov dl,'/'
     mov AH,02H    ; To Print / in DOS
     int 21H
-
+    call CleanV
     ;Month Part
-    mov AH,2AH    ; To get System Date
-    int 21H
-    mov al,DH     ; Month is in DH
+    mov al,month   
+    add al,rst
+
     AAM
     mov BX,AX
     call DISP
@@ -245,7 +260,7 @@ AdjustmentUTC:
     mov AH,02H
     int 21H
 
-    ;Year Part
+    ;Year Part (1980 through 2099)
     mov AH,2AH    ; To get System Date
     int 21H
     ADD CX,0F830H ; To negate the effects of 16bit value,
@@ -254,9 +269,73 @@ AdjustmentUTC:
     mov BX,AX
     call DISP
 
-
 ret
 endp
+
+getMonthDays proc
+    cmp Month,1
+    je  Month1
+    cmp Month,2
+    je  Month2
+    cmp Month,3
+    je  Month3
+    cmp Month,4
+    je  Month4
+    cmp Month,5
+    je  Month5
+    cmp Month,6
+    je  Month6
+    cmp Month,7
+    je  Month7
+    cmp Month,8
+    je  Month8
+    cmp Month,8
+    je  Month8
+    cmp Month,9
+    je  Month9
+    cmp Month,10
+    je  Month10
+    cmp Month,11
+    je  Month11
+    cmp Month,12
+    je  Month12
+    Month1:
+        mov DAY,31
+        ret
+    Month2:
+        mov day,28
+        ret
+    Month3:
+        mov DAY,31
+        ret
+    Month4:
+        mov DAY,30
+        ret
+    Month5:
+        mov DAY,31
+        ret
+    Month6:
+        mov DAY,30
+        ret
+    Month7:
+        mov DAY,31
+        ret
+    Month8:
+        mov DAY,31
+        ret
+    Month9:
+        mov DAY,30
+        ret
+    Month10:
+        mov DAY,31
+        ret
+    Month11:
+        mov DAY,30
+        ret
+    Month12:
+        mov DAY,31
+        ret
+    endp
 
 printNum1 proc
     mov al, num1
@@ -381,8 +460,7 @@ get_date proc
     mov BX,AX
     call DISP
     ret
-endp
-
+    endp
 DISP proc
     mov dl,BH      ; Since the values are in BX, BH Part
     ADD dl,30H     ; ASCII Adjustment
