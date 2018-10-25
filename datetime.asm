@@ -27,6 +27,7 @@ Sunday db 'Sunday $'
 Op2str        db 13,10,'Enter the UTC format: $'
 Op2Examplestr db 13,10,'Example UTC+05 or UTC-10$'
 Op2Helpstr    db 13,10,'UTC$'
+op2Minutes    db 13,10,'Minutes: $'
 Op2Error      db 13,10,':s Please enter a valid format$'
 ;------------------Option3-------------------------------- 
 Indiastr      DB 13,10, 'a. India: $'
@@ -142,20 +143,28 @@ Option2:
     lea     dx,Op2Helpstr
     call    PrintStr
     call    ReadChar
-    mov     Entrada,al
+    mov     Entrada,al  ;symbol
+    call    ReadTwoint  ;number is in num1 & al
+    mov     tmp,al      ;hour 
+    lea     dx,op2Minutes
+    call    PrintStr
+    call    ReadTwoint  ;number is in num1 & al
+    mov     num3,al     ;minutes
+    mov     al,tmp
+    mov     num1,al     ;hour
+    
     cmp     Entrada,2bh ;compare +
     je      plus
     cmp     Entrada,2dh ;compare -
     je      minus
     jmp     Error 
 plus:
-    call    ReadTwoint ; number is in num1 & al
     lea     dx,Salto
     call    PrintStr
-    call    utcProcedure ;add num1 to datetime
+    ;call    utcProcedure ;add num1 to datetime
+    call    ChangeUTC
     call    Continue
 minus:
-    call    ReadTwoint ; number is in num1 & al
     lea     dx,Salto
     call    PrintStr
     call    CleanV
@@ -163,7 +172,7 @@ minus:
     mov     bl,-1
     mul     bl
     mov     num1, al
-    call    utcProcedure ;change for negative method
+    call    ChangeUTC ;change for negative method
     call    Continue  
 Error:
     call    CleanScreen
@@ -195,7 +204,8 @@ Option3:
     lea     dx,Op3str       ;Coordinated Universal Time
     call    PrintStr
     mov     num1,0
-    call    utcProcedure
+    mov     num3,0
+    call    ChangeUTC
 
 India: ;UTC+5:30
     lea     dx,Salto
@@ -204,14 +214,15 @@ India: ;UTC+5:30
     call    PrintStr
     mov     num1,5
     mov     num3,30d
-    call    utcProcedureIndia
+    call    ChangeUTC
 Alemania: ;UTC+2
     lea     dx,Salto
     call    PrintStr
     lea     dx,Alemaniastr
     call    PrintStr
     mov     num1,2
-    call    utcProcedure
+    mov     num3,0
+    call    ChangeUTC
 
 USA: ;UTC-5
     lea     dx,Salto
@@ -219,7 +230,8 @@ USA: ;UTC-5
     lea     dx,EEUUstr
     call    PrintStr
     mov     num1,-5
-    call    utcProcedure
+    mov     num3,0
+    call    ChangeUTC
 
 Argentina: ;UTC-3
     lea     dx,Salto
@@ -227,7 +239,8 @@ Argentina: ;UTC-3
     lea     dx,Argentinastr
     call    PrintStr
     mov     num1,-3
-    call    utcProcedure
+    mov     num3,0
+    call    ChangeUTC
 
 Japon: ;UTC+9
     lea     dx,Salto
@@ -235,7 +248,8 @@ Japon: ;UTC+9
     lea     dx,Japonstr
     call    PrintStr
     mov     num1,9
-    call    utcProcedure
+    mov     num3,0
+    call    ChangeUTC
 
     call Continue
 Option4beta2:
@@ -245,7 +259,7 @@ jmp Option5
 ;------------------Option4--------------------------------   
 Option4:
     call    CleanScreen
-    lea     dx,Op4Timestr
+    lea     dx,Op4Timestr 
     call    PrintStr
     call ReadTwoint ;save on num1
     mov bl,num1
@@ -266,227 +280,100 @@ Option4:
 Option5:
     call    CleanScreen
     call    Continue
-;---------------------UTILITIES--------------------------
-utcProcedure proc
-    ;Hour Part
+;---------------------UTILITIES2.0--------------------------
+ChangeUTC proc
+    call    CleanV
     lea     dx,Op3Timestr
     call    PrintStr
     mov     AH,2CH    ; To get System Time
-    int     21H
-    mov     al,CH     ; Hour is in CH
-    add     al,num1   ; add extra hours 
-    add     al,6    ;add 6hours to UTC 00
-    mov     num2,al
-    cmp     num2,23
-    jg      AdjustmentUTC ;if is necesary to change date (positive)
-
-    cmp     num2,0  
-    jg      TinyAdjustment  
-    ;if is necesary to change date (negative)
-    call    CleanV ;clean dx and ax
-    mov     al,num2 ; system hour + num1 (extra hours) + 6 hours
-    mov     bl,-1
-    mul     bl      ;convert hour to positive
-    add     al,6    ;add 6hours to UTC 00
-    ;---debug----
-    mov tmp,al
-    call debug
+    int     21H       ;Regresa CH = hora, CL = minutos, DH = segundos y DL = centésimos de segundo. 
+    mov HOUR,ch
+    mov MINUTE,cl
+    mov SECOND,dh
     call CleanV
-    mov al,tmp
-    ;-----------
-
+    ;Minutes Part
+    mov al,num3     ;extra minutes
+    add al,MINUTE   ;extra minutes + actual minutes
+    mov     bl,60
+    div     bl        ;minutes mod 60
+    mov     rst,al    ; add rst to hour
+    mov     MINUTE,ah ;new minutes
+    call    CleanV
+    ;Hours Part
+    mov     al,num1     ;extra hours
+    add     al,HOUR     ;extra hours + actual hours
+    add     al,rst      ;extra hours + actual hours + MinutesHours
+    add     al,6        ;extra hours + actual hours + MinutesHours + UTC hours
     mov     bl,24
-    div     bl
+    div     bl          ;hours mod 24
     mov     rst,al      ; add rst to day
-    mov     hour,ah   ;new hour
-
-    ;---debug----
-    mov tmp,ah
-    call debug
-    call CleanV
-    mov ah,tmp
-    ;-----------
-
-    ;---debug----
-    mov tmp,al
-    call debug
-    call CleanV
-    mov al,tmp
-    ;-----------
-    mov al,HOUR
+    mov     HOUR,ah     ;new hour
+    call    CleanV
+    ;Print time
+    mov     al,HOUR  
     AAM
     mov     BX,AX
     call    DISP
-    call    get_minutes
-    lea     dx,Op3Datestr
-    call    PrintStr
-    ;Day Part
-
-
-    ret
-TinyAdjustment:
-    AAM
-    mov BX,AX
-    call DISP
-    ;Minutes and seconds
-    call    get_minutes
-    lea     dx,Op3Datestr
-    call    PrintStr
-    call    get_date
-    ret
-AdjustmentUTC:
-    call    CleanV ;clean dx and ax
-    mov     al,num2 ; system hour + num1 (extra hours) + 6 hours
-    mov     bl,24
-    div     bl
-    mov     rst,al      ; add rst to day
-    mov     hour,ah   ;new hour
-    mov     al,hour     ; Hour is in module
-    AAM
-    mov     BX,AX
-    call    DISP
-    call    get_minutes
-    lea     dx,Op3Datestr
-    call    PrintStr
-    ;Day Part
-    mov     AH,2AH    ; To get System Date
-    int     21H
-    mov     al,dl     ; Day is in dl
-    add     al,rst
-    mov num2,al     ;days 
-    mov MONTH,dh  ; Month is in DH
-    mov YEAR,cx     ;   (1980 through 2099)
-    call getMonthDays ; DAY have the amount of days of the actual month
-    call CleanV
-
-    mov al,num2
-    mov bl,Day  ;29,31 or 32 for the mod
-    div bl
-    mov rst,al  ;add rsr to month
-    mov module,ah; new day
-    mov al,module   ;day is in module
-    AAM
-    mov BX,AX
-    call DISP
-    mov dl,'/'
-    mov AH,02H    ; To Print / in DOS
-    int 21H
-    call CleanV
-    ;Month Part
-    mov al,month   
-    add al,rst
-
-    AAM
-    mov BX,AX
-    call DISP
-
-    mov dl,'/'    ; To Print / in DOS
-    mov AH,02H
-    int 21H
-
-    ;Year Part (1980 through 2099)
-    mov AH,2AH    ; To get System Date
-    int 21H
-    ADD CX,0F830H ; To negate the effects of 16bit value,
-    mov AX,CX     ; since AAM is applicable only for al (YYYY -> YY)
-    AAM
-    mov BX,AX
-    call DISP
-
-ret
-endp
-utcProcedureIndia proc
-
-    call    CleanV ;clean dx and ax
-    lea     dx,Op3Timestr
-    call    PrintStr
-    ;Minute Part
-    mov     AH,2CH    ; To get System Time
-    int     21H
-    mov     al,cl       ;minutes
-    add     al,num3     ;add extra minutes
-
-    mov     bl,60d
-    div     bl
-    mov rst,al ; add rst to hour
-    mov MINUTE,ah ; new minute module
-    call    CleanV ;clean dx and ax
-
-    ;Hour Part
-    mov AH,2CH    ; To get System Time
-    int 21H
-    mov al,CH     ; Hour is in CH
-    add al,rst    ; extra from minute
-    add al,num1   ; extra from utc
-    add al,6      ; for UTC00
-    mov num2,al   ; system hour + num1 (extra hours) + 6 hours
-    div     bl
-    mov     rst,al      ; add rst to day
-    mov     hour,ah     ;new hour
-    call    CleanV ;clean dx and ax
-
-    mov     al,hour     ; Hour is in module
-    AAM ;print
-    mov BX,AX
-    call DISP
     mov dl,':'
     mov AH,02H    ; To Print : in DOS
     int 21H
-
-    ;Minutes Part
-    mov al,MINUTE ; Minutes is in CL
-    AAM ;print
-    mov BX,AX
-    call DISP
-    mov dl,':'    ; To Print : in DOS
-    mov AH,02H
-    int 21H
-    ;Seconds Part
-    mov AH,2CH    ; To get System Time
-    int 21H
-    mov al,DH     ; Seconds is in DH
+    mov     al,MINUTE 
     AAM
-    mov BX,AX
-    call DISP
-
-    call    CleanV ;clean dx and ax
+    mov     BX,AX
+    call    DISP
+    mov dl,':'
+    mov AH,02H    ; To Print : in DOS
+    int 21H
+    mov     al,SECOND  
+    AAM
+    mov     BX,AX
+    call    DISP
     lea     dx,Op3Datestr
     call    PrintStr
+    call    CleanV
     ;Day Part
     mov     AH,2AH    ; To get System Date
     int     21H
-    mov     al,dl     ; Day is in dl
-    add     al,rst
-    mov num2,al     ;days 
-    mov MONTH,dh  ; Month is in DH
-    mov YEAR,cx     ;   (1980 through 2099)
+    mov     DAY,dl
+    mov     MONTH,dh
+    call    CleanV
+    mov al,DAY     ; actual days 
+    add al,rst     ; actual days + extra days 
+    mov rst,al
     call getMonthDays ; DAY have the amount of days of the actual month
+    mov bl,Day  ;29,31 or 32 for the mod
+    div bl
+    mov rst,al  ;add rsr to month
+    mov Day,ah; new day
     call CleanV
-
-    mov     al,num2
-    mov     bl,Day  ;29,31 or 32 for the mod
-    div     bl
-    mov     rst,al  ;add rsr to month
-    mov     module,ah; new day
-    mov     al,module   ;day is in module
+    ;Month Part
+    mov al,MONTH    ;actual months
+    mov al, rst     ;actual months + extra months
+    mov bl,13  
+    div bl
+    mov rst,al  ;add rsr to year
+    mov MONTH,ah; new month
+    call CleanV
+    ;Print date
+    mov al,DAY
     AAM
     mov BX,AX
     call DISP
+
     mov dl,'/'
     mov AH,02H    ; To Print / in DOS
     int 21H
-    call CleanV
-    ;Month Part
-    mov al,month   
-    add al,rst
+    
+    mov al,MONTH     ; Month is in DH
     AAM
     mov BX,AX
     call DISP
+
     mov dl,'/'    ; To Print / in DOS
     mov AH,02H
     int 21H
 
-    ;Year Part (1980 through 2099)
+    ;Year Part
     mov AH,2AH    ; To get System Date
     int 21H
     ADD CX,0F830H ; To negate the effects of 16bit value,
@@ -494,10 +381,10 @@ utcProcedureIndia proc
     AAM
     mov BX,AX
     call DISP
+    ret
+    endp
 
-    
-ret
-endp
+;---------------------UTILITIES--------------------------
 debug proc
     lea dx,PRUEBA1
     call PrintStr
@@ -508,7 +395,29 @@ debug proc
     call PrintStr
     ret 
     endp
+printtmp proc
+    call CleanV
+    mov al, tmp
+    mov BL, 10 
+    DIV BL  
+    
+    mov tmp2,al
+    mov tmp3,AH
+    XOR DX,DX;clean
 
+    ;print result
+    mov AH,02h
+    mov dl,tmp2
+    ADD dl,30h
+    int 21h
+    
+    XOR DX,DX ;clean
+    mov AH,02h
+    mov dl,tmp3
+    ADD dl,30h
+    int 21h
+    ret
+    endp
 set_time proc ;Regresa CH = hora, CL = minutos, DH = segundos y dl = centésimos de segundo.
     call CleanV
     mov ch,HOUR
@@ -723,29 +632,7 @@ getMonthDays proc
         mov DAY,32
         ret
     endp
-printtmp proc
-    call CleanV
-    mov al, tmp
-    mov BL, 10 
-    DIV BL  
-    
-    mov tmp2,al
-    mov tmp3,AH
-    XOR DX,DX;clean
 
-    ;print result
-    mov AH,02h
-    mov dl,tmp2
-    ADD dl,30h
-    int 21h
-    
-    XOR DX,DX ;clean
-    mov AH,02h
-    mov dl,tmp3
-    ADD dl,30h
-    int 21h
-    ret
-    endp
 ;-------------Common stuff----------------------
     ReadTwoint  proc
         call    Readint
