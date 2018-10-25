@@ -37,7 +37,7 @@ Argentinastr  DB 13,10, 'd. Argentina: $'
 Japonstr      DB 13,10, 'e. Japon: $'
 Op3Datestr    DB 13,10, 'Date: $'
 Op3Timestr    DB 13,10, 'Time: $'
-Op3str        DB 13,10,'Coordinated Universal Time$'
+Op3str        DB 13,10,'Coordinated Universal Time (UTC+6 based on system time)$'
 ;------------------Option4-------------------------------- 
 Op4Timestr  DB 13,10,'Enter new time in this format hh:mm:ss : $'
 Op4Datestr  DB 13,10,'Enter new date in this format dd/mm/yy: $'
@@ -199,13 +199,11 @@ Option3:
     lea     dx,date
     call    PrintStr       ;display date
 
-    lea     dx, Salto
-    call    PrintStr
     lea     dx,Op3str       ;Coordinated Universal Time
     call    PrintStr
-    mov     num1,0
-    mov     num3,0
-    call    ChangeUTC
+    ;mov     num1,0
+    ;mov     num3,0
+    ;call    ChangeUTC
 
 India: ;UTC+5:30
     lea     dx,Salto
@@ -224,12 +222,12 @@ Alemania: ;UTC+2
     mov     num3,0
     call    ChangeUTC
 
-USA: ;UTC-5
+USA: ;UTC-4
     lea     dx,Salto
     call    PrintStr
     lea     dx,EEUUstr
     call    PrintStr
-    mov     num1,-5
+    mov     num1,-4
     mov     num3,0
     call    ChangeUTC
 
@@ -281,10 +279,109 @@ Option5:
     call    CleanScreen
     call    Continue
 ;---------------------UTILITIES2.0--------------------------
+
 ChangeUTC proc
     call    CleanV
     lea     dx,Op3Timestr
     call    PrintStr
+    cmp     num1,0
+    jg      gopositive
+    call NegativeUTC
+    ret
+gopositive:
+    call PositiveUTC
+    ret
+    endp
+NegativeUTC proc
+    call    CleanV
+    mov     AH,2CH    ; To get System Time
+    int     21H       ;Regresa CH = hora, CL = minutos, DH = segundos y DL = centésimos de segundo. 
+    mov HOUR,ch
+    mov MINUTE,cl
+    mov SECOND,dh
+    call CleanV
+    mov al,HOUR
+    add al,6
+    mov HOUR,al
+    call CleanV
+    mov     AH,2AH    ; To get System Date
+    int     21H
+    mov     DAY,dl
+    mov     MONTH,dh
+    call CleanV
+    ;Minutes Part
+    mov al,MINUTE       ;actual minutes
+    add al,num3         ;actual minutes - extra minutes
+    cmp al,0
+    jg  positive1
+    ;if actual minutes - extra minutes = negative
+    mov bl,-1
+    mul bl
+    dec HOUR
+positive1:
+    mov MINUTE,al
+    call CleanV
+
+    mov al,HOUR ;actual hours
+    add al,num1 ;actual hours - extra hours
+    cmp al,0
+    jg positive2
+    mov bl,-1
+    mul bl
+    dec DAY
+positive2:
+    mov HOUR,al
+    call    CleanV
+    ;print time
+    mov al,HOUR
+    AAM
+    mov     BX,AX
+    call    DISP
+    mov dl,':'
+    mov AH,02H    ; To Print : in DOS
+    int 21H
+    mov     al,MINUTE 
+    AAM
+    mov     BX,AX
+    call    DISP
+    mov dl,':'
+    mov AH,02H    ; To Print : in DOS
+    int 21H
+    mov     al,SECOND  
+    AAM
+    mov     BX,AX
+    call    DISP
+    ;print date
+    lea     dx,Op3Datestr
+    call    PrintStr
+    call    CleanV
+    mov al,DAY
+    AAM
+    mov BX,AX
+    call DISP
+    mov dl,'/'
+    mov AH,02H    ; To Print / in DOS
+    int 21H
+    mov al,MONTH     ; Month is in DH
+    AAM
+    mov BX,AX
+    call DISP
+    mov dl,'/'    ; To Print / in DOS
+    mov AH,02H
+    int 21H
+    ;Year Part
+    mov AH,2AH    ; To get System Date
+    int 21H
+    ADD CX,0F830H ; To negate the effects of 16bit value,
+    mov AX,CX     ; since AAM is applicable only for al (YYYY -> YY)
+    AAM
+    mov BX,AX
+    call DISP
+    ret
+    endp
+
+PositiveUTC proc
+    call    CleanV
     mov     AH,2CH    ; To get System Time
     int     21H       ;Regresa CH = hora, CL = minutos, DH = segundos y DL = centésimos de segundo. 
     mov HOUR,ch
@@ -351,28 +448,24 @@ ChangeUTC proc
     mov al, rst     ;actual months + extra months
     mov bl,13  
     div bl
-    mov rst,al  ;add rsr to year
-    mov MONTH,ah; new month
+   ; mov rst,al  ;add rsr to year
+   ; mov MONTH,ah; new month
     call CleanV
     ;Print date
     mov al,DAY
     AAM
     mov BX,AX
     call DISP
-
     mov dl,'/'
     mov AH,02H    ; To Print / in DOS
     int 21H
-    
     mov al,MONTH     ; Month is in DH
     AAM
     mov BX,AX
     call DISP
-
     mov dl,'/'    ; To Print / in DOS
     mov AH,02H
     int 21H
-
     ;Year Part
     mov AH,2AH    ; To get System Date
     int 21H
@@ -383,7 +476,6 @@ ChangeUTC proc
     call DISP
     ret
     endp
-
 ;---------------------UTILITIES--------------------------
 debug proc
     lea dx,PRUEBA1
