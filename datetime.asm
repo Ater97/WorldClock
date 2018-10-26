@@ -19,7 +19,7 @@ Op1TimeStr  DB 13,10, 'System time: $'
 Monday db 'Monday $'
 Tuesday db 'Tuesday $'
 Wednesday db 'Wednesday $'
-Thusday db 'Thusday $'
+Thusday db 'Thursday $'
 Friday db 'Friday $'
 Saturday db 'Saturday $'
 Sunday db 'Sunday $'
@@ -61,6 +61,7 @@ num3        db ?
 rst         db ?
 rst2        db ?
 module      db ?
+WeekDayExtra db ?
 ;----------------------DEBUG----------------------------------
 PRUEBA1    DB 13,10, 'PRUEBA1: $'
 PRUEBA2    DB 13,10, 'PRUEBA2: $'
@@ -277,6 +278,10 @@ Option4:
 ;------------------Option5--------------------------------   
 Option5:
     call    CleanScreen
+
+
+
+
     call    Continue
 ;---------------------UTILITIES2.0--------------------------
 
@@ -308,7 +313,11 @@ NegativeUTC proc
     int     21H
     mov     DAY,dl
     mov     MONTH,dh
-    call CleanV
+    mov     WEEKDAY,al
+    call    CleanV
+    mov     al,rst
+    mov     WeekDayExtra,al
+    call    CleanV
     ;Minutes Part
     mov al,MINUTE       ;actual minutes
     add al,num3         ;actual minutes - extra minutes
@@ -354,6 +363,13 @@ positive2:
     ;print date
     lea     dx,Op3Datestr
     call    PrintStr
+    call CleanV
+    mov al,WEEKDAY
+    add al,WeekDayExtra
+    mov bl,8
+    div bl
+    mov WEEKDAY,ah
+    call PrintWeekDay
     call    CleanV
     mov al,DAY
     AAM
@@ -428,11 +444,16 @@ PositiveUTC proc
     lea     dx,Op3Datestr
     call    PrintStr
     call    CleanV
+
     ;Day Part
     mov     AH,2AH    ; To get System Date
     int     21H
     mov     DAY,dl
     mov     MONTH,dh
+    mov     WEEKDAY,al
+    call    CleanV
+    mov     al,rst
+    mov     WeekDayExtra,al
     call    CleanV
     mov al,DAY     ; actual days 
     add al,rst     ; actual days + extra days 
@@ -451,7 +472,14 @@ PositiveUTC proc
    ; mov rst,al  ;add rsr to year
    ; mov MONTH,ah; new month
     call CleanV
+    mov al,WEEKDAY
+    add al,WeekDayExtra
+    mov bl,8
+    div bl
+    mov WEEKDAY,ah
+    call PrintWeekDay
     ;Print date
+    call CleanV
     mov al,DAY
     AAM
     mov BX,AX
