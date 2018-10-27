@@ -318,11 +318,14 @@ printClock proc
 	CALL PUNTEAR
     call PrintNunbers	
 
+    mov Color,3
     call PrintLineHour
+    mov Color,20
     ;call hour3
     ;call hour12
-    mov Color,3
+    
     call hour9
+    mov Color,20
     call hour6
 	CALL INFI
 		
@@ -334,6 +337,31 @@ printClock proc
     ret
     endp
 PrintLineHour proc ;150 limitx minutes
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,25
+    mov limitx,bl
+
+    loopyn5:
+    inc lineROW
+    inc lineROW
+    inc lineCol
+    inc lineCol
+    inc lineCol
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn5
+    ret 
+    endp
+hour11 proc
     mov bx,XC
     mov lineROW,bx
     mov bx, YC
@@ -356,7 +384,8 @@ PrintLineHour proc ;150 limitx minutes
     mov bl,limitx
     cmp countx,bl
     JNZ loopyn11
-    ret 
+    ret
+    endp
 hour3 proc
     mov bx,XC
     mov lineROW,bx
@@ -377,6 +406,7 @@ hour3 proc
     cmp countx,bl
     JNZ loopyn3
     ret 
+    endp
 hour9 proc
     mov bx,XC
     mov lineROW,bx
