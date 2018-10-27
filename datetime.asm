@@ -49,7 +49,7 @@ Op4Datestr  DB 13,10,'Enter new date in this format dd/mm/yy: $'
 	
 	COLOR DB 20   ; Color inicial
 	LAST  DB "5"
-	RAD   DW 50	  ; Radio del círculo
+	RAD   DW 150	  ; Radio del círculo
 	HOR   DW ?
 	VER   DW ?
 	VID   DB ?	; Salvamos el modo de video :) 
@@ -292,6 +292,7 @@ Option4:
 ;------------------Option5--------------------------------   
 Option5:
     call    CleanScreen
+    call    CleanV
     call    printClock
     call    Continue
 ;---------------------UTILITIES3.0--------------------------
@@ -303,16 +304,159 @@ printClock proc
 	MOV AH,00h	; Función para establecer modo de video
 	MOV AL,12h	; Modo gráfico resolución 640x480
 	INT 10h	
+    mov     num1,0
+    mov     num3,0
+    call    ChangeUTC
 
 	MOV CX,XC
 	MOV DX,YC
 	CALL PUNTEAR
-	
+    call PrintNunbers	
+    ;call PrintLineHour
 	CALL INFI
 			
+
+
 	MOV AH,00h		; Función para re-establecer modo de texto
 	MOV AL,VID		
 	INT 10h		    ; Llamada al BIOS	
+    ret
+    endp
+PrintLineHour proc
+    bucle1:
+    mov dx, cx 
+    xor bx,bx
+    mov bh,0h
+    mov ah, 0ch ;AL = pixel color
+    ;
+    mov al,color
+    mov ah, 0ch ;Change color for a single pixel
+    int 10h ;set pixel 
+
+    cmp cx, 10 ;llegar hasta 100 x 100 (va en diagonal)
+    jz fin 
+
+    inc cx ;DX = row.
+    add color, 2 ;para cambiar le sumo de dos en dos, en decimal
+    jmp bucle1 ;CX = column
+    fin:
+    ret 
+    endp
+
+
+PrintNunbers proc ;dl columna dh fila
+   ;12
+    mov dl,38
+    mov dh,6
+    mov ah,02h
+    int 10h
+    mov dl,'1'
+    call PrintChar
+
+    mov dl,39
+    mov dh,6
+    mov ah,02h
+    int 10h
+    mov dl,'2'
+    call PrintChar
+    ;11
+    mov dl,29
+    mov dh,8
+    mov ah,02h
+    int 10h
+    mov dl,'1'
+    call PrintChar
+
+    mov dl,30
+    mov dh,8
+    mov ah,02h
+    int 10h
+    mov dl,'1'
+    call PrintChar
+    ;10
+    mov dl,24
+    mov dh,11
+    mov ah,02h
+    int 10h
+    mov dl,'1'
+    call PrintChar
+
+    mov dl,25
+    mov dh,11
+    mov ah,02h
+    int 10h
+    mov dl,'0'
+    call PrintChar
+    ;9
+    mov dl,22
+    mov dh,14
+    mov ah,02h
+    int 10h
+    mov dl,'9'
+    call PrintChar
+    ;8
+    mov dl,24
+    mov dh,18
+    mov ah,02h
+    int 10h
+    mov dl,'8'
+    call PrintChar
+    ;7
+    mov dl,30
+    mov dh,22
+    mov ah,02h
+    int 10h
+    mov dl,'7'
+    call PrintChar
+    ;6
+    mov dl,38
+    mov dh,23
+    mov ah,02h
+    int 10h
+    mov dl,'6'
+    call PrintChar
+    ;5
+    mov dl,48
+    mov dh,22
+    mov ah,02h
+    int 10h
+    mov dl,'5'
+    call PrintChar
+    ;4
+    mov dl,55
+    mov dh,18
+    mov ah,02h
+    int 10h
+    mov dl,'4'
+    call PrintChar
+    ;3
+    mov dl,56
+    mov dh,14
+    mov ah,02h
+    int 10h
+    mov dl,'3'
+    call PrintChar
+    ;2
+    mov dl,55
+    mov dh,11
+    mov ah,02h
+    int 10h
+    mov dl,'2'
+    call PrintChar
+    ;1
+    mov dl,49
+    mov dh,8
+    mov ah,02h
+    int 10h
+    mov dl,'1'
+    call PrintChar
+    ret
+    endp
+
+PrintChar proc near
+    ;ADD DL,30h
+    MOV AH, 02h ;Imprime en pantalla lo que hay en DL
+    INT 21h
     ret
     endp
 INFI PROC NEAR
