@@ -308,7 +308,7 @@ gopositive:
 NegativeUTC proc
     call    CleanV
     mov     AH,2CH    ; To get System Time
-    int     21H       ;Regresa CH = hora, CL = minutos, DH = segundos y DL = centésimos de segundo. 
+    int     21H       ;Regresa CH = hora, CL = minutos, DH = segundos y DL = cent?simos de segundo. 
     mov HOUR,ch
     mov MINUTE,cl
     mov SECOND,dh
@@ -414,7 +414,7 @@ positive2:
 PositiveUTC proc
     call    CleanV
     mov     AH,2CH    ; To get System Time
-    int     21H       ;Regresa CH = hora, CL = minutos, DH = segundos y DL = centésimos de segundo. 
+    int     21H       ;Regresa CH = hora, CL = minutos, DH = segundos y DL = cent?simos de segundo. 
     mov HOUR,ch
     mov MINUTE,cl
     mov SECOND,dh
@@ -553,7 +553,7 @@ printtmp proc
     int 21h
     ret
     endp
-set_time proc ;Regresa CH = hora, CL = minutos, DH = segundos y dl = centésimos de segundo.
+set_time proc ;Regresa CH = hora, CL = minutos, DH = segundos y dl = cent?simos de segundo.
     call CleanV
     mov ch,HOUR
     mov cl,MINUTE
