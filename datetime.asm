@@ -43,6 +43,16 @@ Op4Timestr  DB 13,10,'Enter new time in this format hh:mm:ss : $'
 Op4Datestr  DB 13,10,'Enter new date in this format dd/mm/yy: $'
 
 ;------------------Option5------------------------------- 
+	XC 	  DW 320  ; Pos X del centro
+	YC 	  DW 240  ; Pos Y del centro
+	TEMPO DW ?    ; Temporal
+	
+	COLOR DB 20   ; Color inicial
+	LAST  DB "5"
+	RAD   DW 50	  ; Radio del círculo
+	HOR   DW ?
+	VER   DW ?
+	VID   DB ?	; Salvamos el modo de video :) 
 
 ;---------------------UTILITIES--------------------------
 Salto       DB 13,10, ' $'
@@ -282,17 +292,164 @@ Option4:
 ;------------------Option5--------------------------------   
 Option5:
     call    CleanScreen
-
-
-
-
+    call    printClock
     call    Continue
-;---------------------UTILITIES2.0--------------------------
-PrintClock proc
+;---------------------UTILITIES3.0--------------------------
+printClock proc
+    MOV AH,0Fh	; Petición de obtención de modo de vídeo
+	INT 10h		; Llamada al BIOS
+	MOV VID,AL
 
+	MOV AH,00h	; Función para establecer modo de video
+	MOV AL,12h	; Modo gráfico resolución 640x480
+	INT 10h	
+
+	MOV CX,XC
+	MOV DX,YC
+	CALL PUNTEAR
+	
+	CALL INFI
+			
+	MOV AH,00h		; Función para re-establecer modo de texto
+	MOV AL,VID		
+	INT 10h		    ; Llamada al BIOS	
     ret
     endp
+INFI PROC NEAR
+ITERA:
+	CALL GRAFICAR
+	CALL ESCUCHAR
+	JNZ ATENDER ; Si no está vacío atiende el que está
+	; Si está vacío atiende el último ingresado
+	MOV AL,LAST
+	
+ATENDER:
+    CALL DONTMOVE
+    ret
+   
+INFI ENDP
 
+DONTMOVE PROC NEAR
+	; CALL GRAFICAR
+	MOV AH,00h
+	INT 16h
+; Si deseamos que parpadee, eliminamos las 3 de arriba.
+	MOV LAST,AL
+	RET
+DONTMOVE ENDP
+
+BORRAR PROC NEAR
+	MOV CX,0
+	MOV CL,COLOR
+	PUSH CX         ; Ya que en GRAFICAR se usan todos los registros
+	MOV COLOR,00h
+	CALL GRAFICAR
+	POP CX
+	MOV COLOR,CL
+	RET
+BORRAR ENDP
+
+PUNTEAR PROC NEAR
+	; Grafica un punto en CX,DX 
+	MOV AH,0Ch		; Petición para escribir un punto
+	MOV AL,COLOR	; Color del pixel
+	MOV BH,00h		; Página
+	INT 10H			; Llamada al BIOS
+	RET
+PUNTEAR ENDP
+
+GRAFICAR PROC NEAR
+; Graficamos todo el circulo !
+	MOV HOR,0
+	MOV AX,RAD
+	MOV VER,AX
+	
+BUSQUEDA:
+	CALL BUSCAR
+	
+    MOV AX,VER
+	SUB AX,HOR
+	CMP AX,1
+	JA BUSQUEDA
+	RET
+GRAFICAR ENDP
+
+BUSCAR PROC NEAR
+; Se encarga de buscar la coord del pixel sgte.
+	INC HOR ; Horizontalmente siempre aumenta 1
+	
+	MOV AX,HOR	
+	MUL AX
+	MOV BX,AX ; X^2 se almacena en BX
+	MOV AX,VER
+	MUL AX    ; AX almacena Y^2
+	ADD BX,AX ; BX almacena X^2 + Y^2
+	MOV AX,RAD
+	MUL AX    ; AX almacena R^2
+	SUB AX,BX ; AX almacena R^2 - (X^2+Y^2)
+	
+	MOV TEMPO,AX
+	
+	MOV AX,HOR	
+	MUL AX
+	MOV BX,AX ; BX almacena X^2
+	MOV AX,VER
+	DEC AX    ; una unidad menos para Y (¡VAYA DIFERENCIA!)
+	MUL AX    ; AX almacena Y^2
+	ADD BX,AX ; BX almacena X^2 + Y^2
+	MOV AX,RAD
+	MUL AX    ; AX almacena R^2
+	SUB AX,BX ; AX almacena R^2 - (X^2+Y^2)
+	
+	CMP TEMPO,AX
+	JB NODEC
+	DEC VER
+NODEC:
+	CALL REPUNTEAR
+	PUSH VER
+	PUSH HOR
+	POP VER
+	POP HOR   ; Cambiamos valores
+	CALL REPUNTEAR
+	PUSH VER
+	PUSH HOR
+	POP VER
+	POP HOR   ; Devolvemos originales 
+	RET
+BUSCAR ENDP
+	
+REPUNTEAR PROC NEAR
+	; I CUADRANTE
+	MOV CX,XC
+	ADD CX,HOR
+	MOV DX,YC
+	SUB DX,VER
+	CALL PUNTEAR
+	; IV CUADRANTE
+	MOV DX,YC
+	ADD DX,VER
+	CALL PUNTEAR
+	; III CUADRANTE
+	MOV CX,XC
+	SUB CX,HOR
+	CALL PUNTEAR
+	; II CUADRANTE
+	MOV DX,YC
+	SUB DX,VER
+	CALL PUNTEAR
+	RET
+REPUNTEAR ENDP
+	
+ESCUCHAR PROC NEAR
+	MOV AH,06h     ; Peticion directa a la consola
+ 	MOV DL,0FFh    ; Entrada de teclado
+ 	INT 21h        ; Interrupcion que llama al DOS
+	; Si ZF está prendido quiere decir que el buffer está vacío.
+	RET
+	; En AL queda el ASCII del caracter ingresado.
+ESCUCHAR ENDP
+
+;---------------------UTILITIES2.0--------------------------
 ChangeUTC proc
     call    CleanV
     lea     dx,Op3Timestr
