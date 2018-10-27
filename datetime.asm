@@ -59,6 +59,8 @@ Op4Datestr  DB 13,10,'Enter new date in this format dd/mm/yy: $'
     county db ?
     limitx db ?
     limity db ?
+    clocknum1 db 0
+    clocknum3 db 0
 ;---------------------UTILITIES--------------------------
 Salto       DB 13,10, ' $'
 YEAR        DW ?
@@ -298,6 +300,9 @@ Option4:
 Option5:
     call    CleanScreen
     call    CleanV
+    mov bl,0
+    mov clocknum1,bl
+    mov clocknum3,bl
     call    printClock
     call    Continue
 ;---------------------UTILITIES3.0--------------------------
@@ -309,8 +314,11 @@ printClock proc
 	MOV AH,00h	; Función para establecer modo de video
 	MOV AL,12h	; Modo gráfico resolución 640x480
 	INT 10h	
-    mov     num1,0
-    mov     num3,0
+    call cleanV
+    mov     al,clocknum1
+    mov     num1,al
+    mov     al,clocknum3
+    mov     num3,al
     call    ChangeUTC
 
 	MOV CX,XC
@@ -321,12 +329,7 @@ printClock proc
     mov Color,3
     call PrintLineHour
     mov Color,20
-    ;call hour3
-    ;call hour12
-    
-    call hour9
-    mov Color,20
-    call hour6
+     
 	CALL INFI
 		
 
@@ -337,6 +340,230 @@ printClock proc
     ret
     endp
 PrintLineHour proc ;150 limitx minutes
+    call cleanV
+    mov al,HOUR
+    mov bl,12
+    div bl
+        cmp ah,1
+    je  waffles1
+        cmp ah,2
+    je  waffles2
+        cmp ah,3
+    je  waffles3
+        cmp ah,4
+    je  waffles4
+        cmp ah,5
+    je  waffles5
+        cmp ah,6
+    je  waffles6
+        cmp ah,7
+    je  waffles7
+        cmp ah,8
+    je  waffles8
+        cmp ah,9
+    je  waffles9
+        cmp ah,10
+    je  waffles10
+        cmp ah,11
+    je  waffles11
+        cmp ah,0
+    je  waffles12
+    
+    waffles1:
+    call    hour1
+    ret
+        waffles2:
+    call    hour2
+    ret
+        waffles3:
+    call    hour3
+    ret
+        waffles4:
+    call    hour4
+    ret
+        waffles5:
+    call    hour5
+    ret
+        waffles6:
+    call    hour6
+    ret
+        waffles7:
+    call    hour7
+    ret
+        waffles8:
+    call    hour8
+    ret
+        waffles9:
+    call    hour9
+    ret
+        waffles10:
+    call    hour10
+    ret
+        waffles11:
+    call    hour11
+    ret
+        waffles12:
+    call    hour12
+    ret
+    endp
+;row++ derecha
+;col-- arriba
+hour10 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,15
+    mov limitx,bl
+
+    loopyn10:
+    dec lineROW
+    dec lineROW
+    dec lineROW
+    dec lineCol
+    dec lineCol
+
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn10
+    ret 
+    endp
+hour4 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,10
+    mov limitx,bl
+
+    loopyn4:
+    inc lineCol
+    inc lineCol
+    inc lineROW
+    inc lineROW
+    inc lineROW
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn4
+    ret 
+    endp
+hour8   proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,10
+    mov limitx,bl
+
+    loopyn8:
+    inc lineCol
+    inc lineCol
+    dec lineROW
+    dec lineROW
+    dec lineROW
+    dec lineROW
+    dec lineROW
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn8
+    ret 
+    endp
+hour2 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,10
+    mov limitx,bl
+
+    loopyn2:
+    dec lineCol
+    dec lineCol
+    inc lineROW
+    inc lineROW
+    inc lineROW
+    inc lineROW
+    inc lineROW
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn2
+    ret 
+    endp
+hour1 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,25
+    mov limitx,bl
+
+    loopyn1:
+    dec lineCol
+    dec lineCol
+    dec lineCol
+    inc lineROW
+    inc lineROW
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn1
+    ret 
+    endp
+hour7 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,25
+    mov limitx,bl
+
+    loopyn7:
+    dec lineROW
+    dec lineROW
+    inc lineCol
+    inc lineCol
+    inc lineCol
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn7
+    ret 
+    endp
+hour5 proc
     mov bx,XC
     mov lineROW,bx
     mov bx, YC
