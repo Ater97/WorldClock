@@ -53,7 +53,12 @@ Op4Datestr  DB 13,10,'Enter new date in this format dd/mm/yy: $'
 	HOR   DW ?
 	VER   DW ?
 	VID   DB ?	; Salvamos el modo de video :) 
-
+    lineROW dw ?
+    lineCol dw ?
+    countx db ?
+    county db ?
+    limitx db ?
+    limity db ?
 ;---------------------UTILITIES--------------------------
 Salto       DB 13,10, ' $'
 YEAR        DW ?
@@ -312,9 +317,15 @@ printClock proc
 	MOV DX,YC
 	CALL PUNTEAR
     call PrintNunbers	
-    ;call PrintLineHour
+
+    call PrintLineHour
+    ;call hour3
+    ;call hour12
+    mov Color,3
+    call hour9
+    call hour6
 	CALL INFI
-			
+		
 
 
 	MOV AH,00h		; Función para re-establecer modo de texto
@@ -322,25 +333,112 @@ printClock proc
 	INT 10h		    ; Llamada al BIOS	
     ret
     endp
-PrintLineHour proc
-    bucle1:
-    mov dx, cx 
-    xor bx,bx
-    mov bh,0h
-    mov ah, 0ch ;AL = pixel color
-    ;
-    mov al,color
-    mov ah, 0ch ;Change color for a single pixel
-    int 10h ;set pixel 
+PrintLineHour proc ;150 limitx minutes
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,25
+    mov limitx,bl
 
-    cmp cx, 10 ;llegar hasta 100 x 100 (va en diagonal)
-    jz fin 
-
-    inc cx ;DX = row.
-    add color, 2 ;para cambiar le sumo de dos en dos, en decimal
-    jmp bucle1 ;CX = column
-    fin:
+    loopyn11:
+    dec lineROW
+    dec lineROW
+    dec lineCol
+    dec lineCol
+    dec lineCol
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn11
     ret 
+hour3 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,120
+    mov limitx,bl
+
+    loopyn3:
+    inc lineROW
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn3
+    ret 
+hour9 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,75
+    mov limitx,bl
+
+    loopyn9:
+    dec lineROW
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn9
+    ret 
+    endp
+hour12 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,200
+    mov limitx,bl
+
+    loopyn12:
+    dec lineCol
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn12
+    ret 
+    endp
+hour6 proc
+    mov bx,XC
+    mov lineROW,bx
+    mov bx, YC
+    mov lineCol,bx
+    MOV CX,XC
+	MOV DX,YC
+    mov bl,120
+    mov limitx,bl
+
+    loopyn:
+    inc lineCol
+    MOV CX,lineROW
+	MOV DX,lineCol
+	CALL PUNTEAR
+    inc countx
+    mov bl,limitx
+    cmp countx,bl
+    JNZ loopyn
+    ret
     endp
 
 
@@ -409,7 +507,7 @@ PrintNunbers proc ;dl columna dh fila
     mov dl,'7'
     call PrintChar
     ;6
-    mov dl,38
+    mov dl,39
     mov dh,23
     mov ah,02h
     int 10h
