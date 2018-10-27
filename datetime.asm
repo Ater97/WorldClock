@@ -180,7 +180,12 @@ plus:
     lea     dx,Salto
     call    PrintStr
     ;call    utcProcedure ;add num1 to datetime
-    call    ChangeUTC
+    call    CleanV
+    mov bl,num1
+    mov clocknum1,bl
+    mov bl,num3
+    mov clocknum3,bl
+    call    printClock
     call    Continue
 minus:
     lea     dx,Salto
@@ -194,7 +199,13 @@ minus:
     mov     bl,-1
     mul     bl
     mov     num3,al
-    call    ChangeUTC ;change for negative method
+    call    CleanV
+    mov bl,num1
+    mov clocknum1,bl
+    mov bl,num3
+    mov clocknum3,bl
+    call    printClock
+    ;call    ChangeUTC ;change for negative method
     call    Continue  
 Error:
     call    CleanScreen
@@ -235,6 +246,15 @@ India: ;UTC+5:30
     mov     num1,5
     mov     num3,30d
     call    ChangeUTC
+    call ContinueClock
+
+    call    CleanV
+    mov bl,num1
+    mov clocknum1,bl
+    mov bl,num3
+    mov clocknum3,bl
+    call    printClock
+
 Alemania: ;UTC+2
     lea     dx,Salto
     call    PrintStr
@@ -243,7 +263,13 @@ Alemania: ;UTC+2
     mov     num1,2
     mov     num3,0
     call    ChangeUTC
-
+    call ContinueClock
+        call    CleanV
+    mov bl,num1
+    mov clocknum1,bl
+    mov bl,num3
+    mov clocknum3,bl
+    call    printClock
 USA: ;UTC-4
     lea     dx,Salto
     call    PrintStr
@@ -252,7 +278,13 @@ USA: ;UTC-4
     mov     num1,-4
     mov     num3,0
     call    ChangeUTC
-
+    call ContinueClock
+        call    CleanV
+    mov bl,num1
+    mov clocknum1,bl
+    mov bl,num3
+    mov clocknum3,bl
+    call    printClock
 Argentina: ;UTC-3
     lea     dx,Salto
     call    PrintStr
@@ -261,7 +293,13 @@ Argentina: ;UTC-3
     mov     num1,-3
     mov     num3,0
     call    ChangeUTC
-
+   call ContinueClock
+       call    CleanV
+    mov bl,num1
+    mov clocknum1,bl
+    mov bl,num3
+    mov clocknum3,bl
+    call    printClock
 Japon: ;UTC+9
     lea     dx,Salto
     call    PrintStr
@@ -270,7 +308,13 @@ Japon: ;UTC+9
     mov     num1,9
     mov     num3,0
     call    ChangeUTC
-
+    call ContinueClock
+        call    CleanV
+    mov bl,num1
+    mov clocknum1,bl
+    mov bl,num3
+    mov clocknum3,bl
+    call    printClock
     call Continue
 Option4beta2:
 jmp Option4
@@ -306,6 +350,10 @@ Option5:
     call    printClock
     call    Continue
 ;---------------------UTILITIES3.0--------------------------
+
+
+
+
 printClock proc
     MOV AH,0Fh	; Petición de obtención de modo de vídeo
 	INT 10h		; Llamada al BIOS
@@ -326,14 +374,11 @@ printClock proc
 	CALL PUNTEAR
     call PrintNunbers	
 
-    mov Color,3
+    ;mov Color,3
     call PrintLineHour
-    mov Color,20
-     
+    ;mov Color,20
 	CALL INFI
 		
-
-
 	MOV AH,00h		; Función para re-establecer modo de texto
 	MOV AL,VID		
 	INT 10h		    ; Llamada al BIOS	
@@ -1496,6 +1541,21 @@ getMonthDays proc
             call CleanScreen
             jmp Menu
             endp
+    ContinueClock proc
+        lea     DX,AskContinue
+        call    PrintStr
+        waitlClock:          
+            mov ah, 0bh;check for a key 
+            int 21h
+            cmp al,0
+            je waitlClock
+            xor ax,ax
+            mov AH, 01h  
+            int 21h
+            call CleanScreen
+            ret
+            endp
+    
     CleanScreen proc
         mov al, 00
         mov ah, 00
